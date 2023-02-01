@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<head>
+  <title>Park Amenities</title>
+  <link
+    rel="stylesheet"
+    href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+    crossorigin="anonymous"
+  />
+  <link rel="stylesheet" href="css/style.css" />
+  <!--
+      Author: Michael Walters
+      Purpose: The purpose of this application is to show a list of parks within the area of Hamilton but will show the parks or schools nearest you in your location wherever you are within a certain radius. Using Bing Maps this webpage will display all of the parks or schools found using push pins the push pins are then clickable to show a little bit more information about the park. Some of the information that will be shown is a description, a rating, overview of the park, followed by the park name. The information that is provided will be edible but you are only able to edit the description and or the rating.Once you update any of the information it will then be displayed once the web page is reloaded.
+    -->
+  <script
+    type="text/javascript"
+    src="https://www.bing.com/api/maps/mapcontrol?key=Ag-9UmaOu3hCq2d2bxFTnt2ryCnUmD81o8_dEMuHCqbAFJ0TMwiY1IuhzPUjRaC6&callback=loadMapScenario"
+    async
+    defer
+  ></script>
+  <script
+    src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+    integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+    crossorigin="anonymous"
+  ></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+    integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+    crossorigin="anonymous"
+  ></script>
+  <script
+    src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+    integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+    crossorigin="anonymous"
+  ></script>
+</head>
+<html>
+  <body>
+    <div class="container">
+      <div id="menu" style="width: auto">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+          <a class="navbar-brand" href="index.html" id="Name">Park Amenities</a>
+          <button
+            class="navbar-toggler"
+            type="button"
+            data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+          >
+            <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav mr-auto">
+              <li class="nav-item">
+                <a class="nav-link" href="index.html"
+                  >Add Description<span class="sr-only">(current)</span></a
+                >
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="index.html">Add New Park</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="index.html">Contact Us</a>
+              </li>
+            </ul>
+            <form class="form-inline my-2 my-lg-0">
+              <input
+                class="form-control mr-sm-2"
+                type="search"
+                placeholder="Search"
+                aria-label="Search"
+              />
+              <button
+                class="btn btn-outline-success my-2 my-sm-0"
+                type="submit"
+              >
+                Search For Park
+              </button>
+            </form>
+          </div>
+        </nav>
+      </div>
+      <div class="row" style="width: 100%; margin-left: 0">
+        <div
+          class="col-sm-8"
+          id="myMap"
+          style="width: 100%; height: 500px; float: left"
+        ></div>
+        <div
+          class="col-sm-4"
+          id="displayeddirections"
+          style="overflow: scroll"
+        ></div>
+      </div>
+    </div>
+
+    <script type="text/javascript" src="js/education.js"></script>
+    <script type="text/javascript">
+      window.addEventListener('load', function () {
+        loadMap();
+        navigator.geolocation.getCurrentPosition(function (position) {
+          (userLat = position.coords.latitude),
+            (userLong = position.coords.longitude);
+        });
+
+        fetch('GetList.php', {
+          credentials: 'include',
+        })
+          .then((response) => response.json())
+          .then(output);
+      });
+
+      var schoolLocation;
+      var userLong, userLat;
+      var map;
+      var directionsManager;
+      var infobox;
+
+      // This fucntion will clear the map of directions and the display of directions
+      function clearDirections() {
+        document.getElementById('displayeddirections').innerText = '';
+        map.layers.clear();
+      }
+
+      // When the all filter is slected it will display a new map with the all of the  education locations in and around hamiltion
+      function loadAll() {
+        clearmap();
+        clearDirections();
+        for (i = 0; i < education.length; i++) {
+          // create a new location
+          var location = new Microsoft.Maps.Location(
+            education[i].LATITUDE,
+            education[i].LONGITUDE
+          );
+
+          // Create a pushpin at this location, give it a label with the school name
+          var pushpin = new Microsoft.Maps.Pushpin(location, {
+            title: education[i].NAME,
+          });
+          pushpin.metadata = {
+            description:
+              "<h4 class='title'>" +
+              "<a href='" +
+              education[i].WEBSITE +
+              "'>" +
+              education[i].NAME +
+              '</a></h4>' +
+              '<p>' +
+              'Address: ' +
+              education[i].ADDRESS +
+              ' Community: ' +
+              education[i].COMMUNITY +
+              ' School Board: ' +
+              education[i].SCHOOL_BOARD +
+              ' Comments:' +
+              education[i].COMMENTS +
+              '<br>Catagory: ' +
+              education[i].CATEGORY +
+              '</p>',
+            actions: [
+              {
+                label: 'Directions',
+                eventHandler: function () {
+                  directionsLoad();
+                },
+              },
+            ],
+          };
+          Microsoft.Maps.Events.addHandler(pushpin, 'click', pushPinClicked);
+          console.log('pushpin placed');
+          map.entities.push(pushpin);
+        }
+      }
+
+      // This will clear the map of all the pin and layers off the map for new pins
+      function clearmap() {
+        // This will get the total pins on the map and using the count clear all of the pin to allow a filter system to function
+        map.entities.push(
+          Microsoft.Maps.TestDataGenerator.getPushpins(10, map.getBounds())
+        );
+        for (var i = map.entities.getLength() - 1; i >= 0; i--) {
+          var pushpin = map.entities.get(i);
+
+          if (pushpin instanceof Microsoft.Maps.Pushpin) {
+            map.entities.removeAt(i);
+            infobox.setOptions({
+              visible: false,
+            });
+          }
+        }
+        console.log('map cleared');
+      }
+
+      // When the webpage first loads in this will ask for the user to allow the location to be used and displayd for directions
+      function loadMap() {
+        // Create a Map, centered in Hamilton
+        map = new Microsoft.Maps.Map(document.getElementById('myMap'), {
+          center: new Microsoft.Maps.Location(43.2557, -79.871),
+        });
+
+        // This will inialize the infobox and wont allow them to be show on the map
+        infobox = new Microsoft.Maps.Infobox(map.getCenter(), {
+          visible: false,
+        });
+
+        // This will allow info boxs on the map the infobox to a map
+        infobox.setMap(map);
+
+        // When allowed these will store the longitude and latitude for the user computer
+
+        // Loop over the education data contained in education.js
+        for (i = 0; i < education.length; i++) {
+          // create a new location for a new school
+          var location = new Microsoft.Maps.Location(
+            education[i].LATITUDE,
+            education[i].LONGITUDE
+          );
+
+          // create a pushpin at this location, give it a label with
+          // the school name
+          var pushpin = new Microsoft.Maps.Pushpin(location, {
+            title: education[i].NAME,
+          });
+
+          // all of the meta data will be stored in the dirscription and label when a label is clciked it will show the user the directions from there location to the the school
+          pushpin.metadata = {
+            description:
+              "<h4 class='title'>" +
+              "<a href='" +
+              education[i].WEBSITE +
+              "'>" +
+              education[i].NAME +
+              '</a></h4>' +
+              '<p>' +
+              'Address: ' +
+              education[i].ADDRESS +
+              ' Community: ' +
+              education[i].COMMUNITY +
+              ' School Board: ' +
+              education[i].SCHOOL_BOARD +
+              ' Comments:' +
+              education[i].COMMENTS +
+              '<br>Catagory: ' +
+              education[i].CATEGORY +
+              '</p>',
+            actions: [
+              {
+                label: 'Directions',
+                eventHandler: function () {
+                  directionsLoad();
+                },
+              },
+            ],
+          };
+          Microsoft.Maps.Events.addHandler(pushpin, 'click', pushPinClicked);
+          console.log('pushpin placed');
+          // add the pushpin to the map
+          map.entities.push(pushpin);
+        }
+      }
+
+      //when the user want to put a name and address in this will display and zoom into where the new pushpin at the address given.
+      function placePushpin() {
+        //whena user enters the name and address this will search the world map for that address and place a pushpin on the map where the address the location they entered is
+        Microsoft.Maps.loadModule('Microsoft.Maps.Search', function () {
+          var searchAddress = new Microsoft.Maps.Search.SearchManager(map);
+          //inializes a request to place the pushpin on the map and find the location of the address
+          var request = {
+            bounds: map.getBounds(),
+            where: document.getElementById('address').value,
+            callback: function (answer, userData) {
+              map.setView({
+                bounds: answer.results[0].bestView,
+              });
+              map.entities.push(
+                new Microsoft.Maps.Pushpin(answer.results[0].location, {
+                  title: document.getElementById('name').value,
+                })
+              );
+            },
+          };
+          searchAddress.geocode(request);
+        });
+      }
+
+      //when a pushpin is click a infobox will display wiht a title, discription and click event whihc will show the disreaction from ur location to the school selected
+      function pushPinClicked(e) {
+        //this will make sure that the infobox has metadata to display.
+        if (e.target.metadata) {
+          //Set the infobox options with the metadata of the pushpin.
+          schoolLocation = e.target.getLocation();
+          infobox.setOptions({
+            location: e.target.getLocation(),
+            description: e.target.metadata.description,
+            actions: e.target.metadata.actions,
+            visible: true,
+          });
+        }
+      }
+
+      //this fucntion will load and display the direction on the screen show the route to get the location and the different routes and the step by step directions
+      function directionsLoad() {
+        Microsoft.Maps.loadModule('Microsoft.Maps.Directions', function () {
+          directionsManager = new Microsoft.Maps.Directions.DirectionsManager(
+            map
+          );
+
+          map.layers.clear();
+          directionsManager.clearDisplay();
+          //Create waypoints for the directionsa and easy to follow.
+          var waypoint1 = new Microsoft.Maps.Directions.Waypoint({
+            address: 'Your location',
+            location: new Microsoft.Maps.Location(userLat, userLong),
+          });
+          directionsManager.addWaypoint(waypoint1);
+
+          var waypoint2 = new Microsoft.Maps.Directions.Waypoint({
+            address: 'Destination',
+            location: schoolLocation,
+          });
+          directionsManager.addWaypoint(waypoint2);
+
+          //while send and display all of the directions in the display and will show the directions.
+          directionsManager.setRenderOptions({
+            itineraryContainer: '#displayeddirections',
+          });
+
+          //Calculate directions.
+          directionsManager.calculateDirections();
+        });
+      }
+    </script>
+  </body>
+</html>
